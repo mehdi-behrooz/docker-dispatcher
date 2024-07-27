@@ -1,0 +1,109 @@
+{{ define "find_port" }}
+
+    {{ $listening_port := (first $.container.Addresses).Port }}
+    {{ $specified_port := $.container.Env.DISPATCHER_PORT }}
+    {{ $default_port := $.default }}
+    {{ $port := or $specified_port $listening_port $default_port }}
+    {{ $_ := set $ "port" $port }}
+
+{{ end }}
+
+global
+    log stdout format raw daemon {{.Env.LOG_LEVEL}}
+
+
+defaults root
+    log global
+    timeout connect 10s
+    timeout client 10s
+    timeout server 10s
+    default-server resolvers docker init-addr none
+
+
+resolvers docker
+    nameserver docker0 127.0.0.11:53
+
+
+defaults tcp from root
+    mode tcp
+    option tcplog
+
+
+defaults http from root
+    mode http
+    option httplog
+
+
+frontend main from tcp
+    bind :443
+    tcp-request inspect-delay 10s
+    tcp-request content capture req.ssl_sni len 16
+
+    {{ range $container := whereExist $ "Env.DISPATCHER_DECODE" }}
+    use_backend ssl_decoder if { req.ssl_sni -i "{{ $container.Env.DISPATCHER_DECODE }}" }
+    {{ end }}
+
+    {{ range $container := whereExist $ "Env.DISPATCHER_FORWARD" }}
+    use_backend forward_{{$container.Name}} if { req.ssl_sni -i "{{ $container.Env.DISPATCHER_FORWARD }}" }
+    {{ end }}
+
+    {{ range $container := where $ "Env.DISPATCHER_NO_SNI" "TRUE" }}
+    use_backend no_sni_{{$container.Name}} if !{ req.ssl_sni -m found }
+    {{ end }}
+
+    {{ range $container := where $ "Env.DISPATCHER_FORWARD_DEFAULT" "TRUE" }}
+    use_backend forward_{{$container.Name}}
+    {{ end }}
+
+
+backend ssl_decoder from tcp
+    server ssl_decoder 127.0.0.1:4433 send-proxy
+
+
+frontend ssl_decoder_frontend from http
+    bind :4433 ssl crt /certs/ accept-proxy
+
+    {{ $http_containers := whereExist $ "Env.DISPATCHER_DECODE" }}
+
+    {{ range $container := whereExist $http_containers "Env.DISPATCHER_PATH" }}
+    {{ $name := $container.Name }}
+    {{ $host := $container.Env.DISPATCHER_DECODE }}
+    {{ $path := $container.Env.DISPATCHER_PATH }}
+    use_backend decode_{{ $name }} if { ssl_fc_sni -i {{ $host }} } { path_beg {{ $path }} }
+    {{ end }}
+
+    {{ range $container := whereNotExist $http_containers "Env.DISPATCHER_PATH" }}
+    {{ $name := $container.Name }}
+    {{ $host := $container.Env.DISPATCHER_DECODE }}
+    use_backend decode_{{ $name }} if { ssl_fc_sni -i {{ $host }} }
+    {{ end }}
+
+
+{{ range $container := whereExist $ "Env.DISPATCHER_DECODE" }}
+{{ $name := $container.Name }}
+{{ $args := dict "container" $container "default" 80 }}
+{{ template "find_port" $args }}
+{{ $port := $args.port }}
+backend decode_{{ $name }} from http
+    server decode_{{ $name}} {{ $name }}:{{ $port }}
+{{end}}
+
+{{ range $container := whereExist $ "Env.DISPATCHER_FORWARD" }}
+{{ $name := $container.Name }}
+{{ $args := dict "container" $container "default" 443 }}
+{{ template "find_port" $args }}
+{{ $port := $args.port }}
+backend forward_{{ $name }} from tcp
+    server forward_{{ $name }} {{ $name }}:{{ $port }}
+{{end}}
+
+{{ range $container := where $ "Env.DISPATCHER_NO_SNI" "TRUE" }}
+{{ $name := $container.Name }}
+{{ $args := dict "container" $container "default" 80 }}
+{{ template "find_port" $args }}
+{{ $port := $args.port }}
+backend no_sni_{{ $name }} from tcp
+    server no_sni_{{ $name }} {{ $name }}:{{ $port }}
+{{end}}
+
+
