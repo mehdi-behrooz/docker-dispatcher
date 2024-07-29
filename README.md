@@ -16,28 +16,36 @@ An automatic request dispatcher based on HAProxy for docker environment. The dif
     environment:
       - LOG_LEVEL=debug
 
-  webserver1:
-    image: nginx1
+  http_server_1:
+    image: nginx
     labels:
       - dispatcher.type=http
-      - dispatcher.host=a.example1.com
+      - dispatcher.host=www.example1.com
       - dispatcher.port=80
 
-  webserver2:
-    image: nginx2
+  http_server_2:
+    image: nginx
     labels:
       - dispatcher.type=http
-      - dispatcher.host=a.example2.com
+      - dispatcher.host=www.example2.com
       - dispatcher.port=80
 
-  webserver3:
-    image: nginx3
+  http_server_3:
+    image: nginx
+    labels:
+      - dispatcher.type=http
+      - dispatcher.host=www.example2.com
+      - dispatcher.path=/admin/
+      - dispatcher.port=80
+
+  https_server:
+    image: nginx
     labels:
       - dispatcher.type=https
-      - dispatcher.host=a.example2.com
+      - dispatcher.host=www.example3.com
       - dispatcher.port=443
 
-  tcpserver:
+  tcp_server:
     image: some_tcp_server
     labels:
       - dispatcher.type=tcp
@@ -53,6 +61,8 @@ An automatic request dispatcher based on HAProxy for docker environment. The dif
   - `tcp`: tells the dispatcher to forward any request without SSL SNI to this server. Only one TCP server can be declared.
 
 `dispatcher.host` (*required*): the SNI that server can handle.
+
+`dispatcher.path`: tells the dispatcher that only those requests beginning with this string should be forwarded to this container. It can only be used in http mode.
 
 `dispatcher.port`: optinally you can set the destination port. If not set, the first open port of the container is used. if no open port can be found, the dispatcher will use 80 for http requests and 443 for https and tcp request.  
 
