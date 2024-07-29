@@ -4,7 +4,8 @@ FROM haproxy:latest
 
 USER root
 RUN apt-get update -y
-RUN apt-get install -y procps  # for kill command
+RUN apt-get install -y procps             # for kill command
+RUN apt-get install -y netcat-openbsd     # for nc
 RUN apt-get install -y supervisor
 
 ENV LOG_LEVEL=info
@@ -21,3 +22,4 @@ COPY --chmod=755 reload.sh /reload.sh
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
+HEALTHCHECK CMD supervisorctl status docker-gen && supervisorctl status haproxy && nc -z localhost 443 || exit 1
