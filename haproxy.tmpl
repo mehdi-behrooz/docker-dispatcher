@@ -1,7 +1,8 @@
+
 {{ define "find_port" }}
 
     {{ $listening_port := (first $.container.Addresses).Port }}
-    {{ $specified_port := $.container.Env.DISPATCHER_PORT }}
+    {{ $specified_port := index $.container.Labels "dispatcher.port" }}
     {{ $default_port := $.default }}
     {{ $port := or $specified_port $listening_port $default_port }}
     {{ $_ := set $ "port" $port }}
@@ -39,19 +40,19 @@ frontend main from tcp
     tcp-request inspect-delay 10s
     tcp-request content capture req.ssl_sni len 16
 
-    {{ range $container := whereExist $ "Env.DISPATCHER_DECODE" }}
-    use_backend ssl_decoder if { req.ssl_sni -i "{{ $container.Env.DISPATCHER_DECODE }}" }
+    {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^http$" }}
+    use_backend ssl_decoder if { req.ssl_sni -i {{ index $container.Labels "dispatcher.host" }} }
     {{ end }}
 
-    {{ range $container := whereExist $ "Env.DISPATCHER_FORWARD" }}
-    use_backend forward_{{$container.Name}} if { req.ssl_sni -i "{{ $container.Env.DISPATCHER_FORWARD }}" }
+    {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^https$" }}
+    use_backend forward_{{$container.Name}} if { req.ssl_sni -i {{ index $container.Labels "dispatcher.host" }} }
     {{ end }}
 
-    {{ range $container := where $ "Env.DISPATCHER_NO_SNI" "TRUE" }}
-    use_backend no_sni_{{$container.Name}} if !{ req.ssl_sni -m found }
+    {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^tcp$" }}
+    use_backend forward_{{$container.Name}} if !{ req.ssl_sni -m found }
     {{ end }}
 
-    {{ range $container := where $ "Env.DISPATCHER_FORWARD_DEFAULT" "TRUE" }}
+    {{ range $container := whereLabelValueMatches $ "dispatcher.defalut" "^(?i)true$" }}
     use_backend forward_{{$container.Name}}
     {{ end }}
 
@@ -63,32 +64,32 @@ backend ssl_decoder from tcp
 frontend ssl_decoder_frontend from http
     bind :4433 ssl crt /certs/ accept-proxy
 
-    {{ $http_containers := whereExist $ "Env.DISPATCHER_DECODE" }}
+    {{ $http_containers := whereLabelValueMatches $ "dispatcher.type" "^http$" }}
 
-    {{ range $container := whereExist $http_containers "Env.DISPATCHER_PATH" }}
+    {{ range $container := whereLabelExists $http_containers "dispatcher.path" }}
     {{ $name := $container.Name }}
-    {{ $host := $container.Env.DISPATCHER_DECODE }}
-    {{ $path := $container.Env.DISPATCHER_PATH }}
-    use_backend decode_{{ $name }} if { ssl_fc_sni -i {{ $host }} } { path_beg {{ $path }} }
+    {{ $host := index $container.Labels "dispatcher.host" }}
+    {{ $path := index $container.Labels "dispatcher.path" }}
+    use_backend http_{{ $name }} if { ssl_fc_sni -i {{ $host }} } { path_beg {{ $path }} }
     {{ end }}
 
-    {{ range $container := whereNotExist $http_containers "Env.DISPATCHER_PATH" }}
+    {{ range $container := whereLabelDoesNotExist $http_containers "dispatcher.path" }}
     {{ $name := $container.Name }}
-    {{ $host := $container.Env.DISPATCHER_DECODE }}
-    use_backend decode_{{ $name }} if { ssl_fc_sni -i {{ $host }} }
+    {{ $host := index $container.Labels "dispatcher.host" }}
+    use_backend http_{{ $name }} if { ssl_fc_sni -i {{ $host }} }
     {{ end }}
 
 
-{{ range $container := whereExist $ "Env.DISPATCHER_DECODE" }}
+{{ range $container := whereLabelValueMatches $ "dispatcher.type" "^http$" }}
 {{ $name := $container.Name }}
 {{ $args := dict "container" $container "default" 80 }}
 {{ template "find_port" $args }}
 {{ $port := $args.port }}
-backend decode_{{ $name }} from http
-    server decode_{{ $name}} {{ $name }}:{{ $port }}
+backend http_{{ $name }} from http
+    server http_{{ $name}} {{ $name }}:{{ $port }}
 {{end}}
 
-{{ range $container := whereExist $ "Env.DISPATCHER_FORWARD" }}
+{{ range $container := whereLabelValueMatches $ "dispatcher.type" "^https$" }}
 {{ $name := $container.Name }}
 {{ $args := dict "container" $container "default" 443 }}
 {{ template "find_port" $args }}
@@ -97,13 +98,13 @@ backend forward_{{ $name }} from tcp
     server forward_{{ $name }} {{ $name }}:{{ $port }}
 {{end}}
 
-{{ range $container := where $ "Env.DISPATCHER_NO_SNI" "TRUE" }}
+{{ range $container := whereLabelValueMatches $ "dispatcher.type" "^tcp$" }}
 {{ $name := $container.Name }}
 {{ $args := dict "container" $container "default" 80 }}
 {{ template "find_port" $args }}
 {{ $port := $args.port }}
-backend no_sni_{{ $name }} from tcp
-    server no_sni_{{ $name }} {{ $name }}:{{ $port }}
+backend forward_{{ $name }} from tcp
+    server forward_{{ $name }} {{ $name }}:{{ $port }}
 {{end}}
 
 
