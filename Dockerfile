@@ -22,4 +22,7 @@ COPY --chmod=755 reload.sh /reload.sh
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
-HEALTHCHECK CMD supervisorctl status docker-gen && supervisorctl status haproxy && nc -z localhost 443 || exit 1
+HEALTHCHECK  --interval=15m \
+    --start-interval=30s \
+    --start-period=30s \
+    CMD supervisorctl status docker-gen && supervisorctl status haproxy && nc -z localhost 443 || exit 1
