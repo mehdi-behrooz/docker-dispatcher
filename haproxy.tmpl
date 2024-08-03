@@ -52,7 +52,7 @@ frontend main from tcp
     use_backend forward_{{$container.Name}} if !{ req.ssl_sni -m found }
     {{ end }}
 
-    {{ range $container := whereLabelValueMatches $ "dispatcher.defalut" "^(?i)true$" }}
+    {{ range $container := whereLabelValueMatches $ "dispatcher.default" "^(?i)true$" }}
     use_backend forward_{{$container.Name}}
     {{ end }}
 
