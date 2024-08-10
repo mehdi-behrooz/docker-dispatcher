@@ -20,21 +20,21 @@ An automatic request dispatcher based on HAProxy for docker environment. The dif
     image: nginx
     labels:
       - dispatcher.type=http
-      - dispatcher.host=www.example1.com
+      - dispatcher.hosts=www.example1.com, www.example1-test.com
       - dispatcher.port=80
 
   http_server_2:
     image: nginx
     labels:
       - dispatcher.type=http
-      - dispatcher.host=www.example2.com
+      - dispatcher.hosts=example2.com, www.example2.com
       - dispatcher.port=80
 
   http_server_3:
     image: nginx
     labels:
       - dispatcher.type=http
-      - dispatcher.host=www.example2.com
+      - dispatcher.hosts=example3.com, *.example3.com
       - dispatcher.path=/admin/
       - dispatcher.port=80
 
@@ -42,7 +42,7 @@ An automatic request dispatcher based on HAProxy for docker environment. The dif
     image: nginx
     labels:
       - dispatcher.type=https
-      - dispatcher.host=www.example3.com
+      - dispatcher.hosts=www.example3.com
       - dispatcher.port=443
 
   tcp_server:
@@ -60,10 +60,10 @@ An automatic request dispatcher based on HAProxy for docker environment. The dif
   - `https`: tells the dispatcheer to forward requests without decoding SSL. The SSL decoding should be handled by the destination server itself.
   - `tcp`: tells the dispatcher to forward any request without SSL SNI to this server. Only one TCP server can be declared.
 
-`dispatcher.host` (*required*): the SNI that server can handle.
+`dispatcher.hosts` (*required*): the comma-separated list of SNI's that server can handle.
 
 `dispatcher.path`: tells the dispatcher that only those requests beginning with this string should be forwarded to this container. It can only be used in http mode.
 
-`dispatcher.port`: optinally you can set the destination port. If not set, the first open port of the container is used. if no open port can be found, the dispatcher will use 80 for http requests and 443 for https and tcp request.  
+`dispatcher.port`: optinally you can set the destination port. If not set, the first open port of the container is used. if no open port can be found, the dispatcher will use 80 for http requests and 443 for https and tcp request.
 
 

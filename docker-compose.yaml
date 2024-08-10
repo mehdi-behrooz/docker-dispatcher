@@ -1,0 +1,43 @@
+services:
+
+  dispatcher:
+    build: .
+    container_name: dispatcher
+    ports:
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /certs:/certs/:ro
+    environment:
+      - LOG_LEVEL=debug
+
+  nginx1:
+    image: nginx
+    container_name: nginx1
+    labels:
+      - dispatcher.type=http
+      - dispatcher.hosts=nginx1.com
+
+
+  nginx2:
+    image: nginx
+    container_name: nginx2
+    labels:
+      - dispatcher.type=https
+      - dispatcher.hosts=*.nginx2.com
+
+
+  nginx3:
+    image: nginx
+    container_name: nginx3
+    labels:
+      - dispatcher.type=https
+      - dispatcher.hosts=nginx3.com, www.nginx3.com
+
+  nginx4:
+    image: nginx
+    container_name: nginx4
+    labels:
+      - dispatcher.type=http
+      - dispatcher.hosts=nginx4.com, *.nginx4.com
+

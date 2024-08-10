@@ -1,3 +1,12 @@
+{{ define "match" -}}
+    {{- $ := trim $ }}
+    {{- if sprigContains "*" $ -}}
+        {{- $ := $ | sprigReplace "." "\\." | sprigReplace "*" ".*" -}}
+        -i -m reg {{ $ }}
+    {{- else -}}
+        -i -m str {{ $ }}
+    {{- end -}}
+{{- end }}
 
 {{ define "find_port" }}
 
@@ -41,11 +50,15 @@ frontend main from tcp
     tcp-request content capture req.ssl_sni len 16
 
     {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^http$" }}
-    use_backend ssl_decoder if { req.ssl_sni -i {{ index $container.Labels "dispatcher.host" }} }
+    {{ range $host := split (index $container.Labels "dispatcher.hosts") "," }}
+    use_backend ssl_decoder if { req.ssl_sni {{ template "match" $host }} }
+    {{ end }}
     {{ end }}
 
     {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^https$" }}
-    use_backend forward_{{$container.Name}} if { req.ssl_sni -i {{ index $container.Labels "dispatcher.host" }} }
+    {{ range $host := split (index $container.Labels "dispatcher.hosts") "," }}
+    use_backend forward_{{$container.Name}} if { req.ssl_sni {{ template "match" $host }} }
+    {{ end }}
     {{ end }}
 
     {{ range $container := whereLabelValueMatches $ "dispatcher.type" "^tcp$" }}
@@ -68,15 +81,17 @@ frontend ssl_decoder_frontend from http
 
     {{ range $container := whereLabelExists $http_containers "dispatcher.path" }}
     {{ $name := $container.Name }}
-    {{ $host := index $container.Labels "dispatcher.host" }}
     {{ $path := index $container.Labels "dispatcher.path" }}
-    use_backend http_{{ $name }} if { ssl_fc_sni -i {{ $host }} } { path_beg {{ $path }} }
+    {{ range $host := split (index $container.Labels "dispatcher.hosts") "," }}
+    use_backend http_{{ $name }} if { ssl_fc_sni {{ template "match" $host }} } { path_beg {{ $path }} }
+    {{ end }}
     {{ end }}
 
     {{ range $container := whereLabelDoesNotExist $http_containers "dispatcher.path" }}
     {{ $name := $container.Name }}
-    {{ $host := index $container.Labels "dispatcher.host" }}
-    use_backend http_{{ $name }} if { ssl_fc_sni -i {{ $host }} }
+    {{ range $host := split (index $container.Labels "dispatcher.hosts") "," }}
+    use_backend http_{{ $name }} if { ssl_fc_sni {{ template "match" $host }} }
+    {{ end }}
     {{ end }}
 
 
