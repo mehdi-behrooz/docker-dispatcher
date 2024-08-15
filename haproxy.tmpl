@@ -48,7 +48,7 @@ defaults http from root
 
 
 frontend main from tcp
-    bind :443
+    bind :::443 v4v6
     tcp-request inspect-delay 10s
     tcp-request content capture req.ssl_sni len 16
 
