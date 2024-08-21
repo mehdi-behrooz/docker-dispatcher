@@ -1,10 +1,9 @@
 #!/bin/bash
 
-if [ "$LOG_LEVEL" == "debug" ]
-then
-        echo "$HAPROXY_CONFIG:"
-        cat $HAPROXY_CONFIG
+if [ "$LOG_LEVEL" == "debug" ]; then
+    echo "$HAPROXY_CONFIG:"
+    cat "$HAPROXY_CONFIG"
 fi
 
-kill -USR2 `cat $HAPROXY_PID`
-
+pid=$(cat "$HAPROXY_PID")
+kill -USR2 "$pid"
