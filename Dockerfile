@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # checkov:skip=CKV_DOCKER_3: docker-gen must be root to access /var/run/docker.sock
 # checkov:skip=CKV_DOCKER_7: docker-gen has no other tags except "latest"
+# checkov:skip=CKV_DOCKER_8: docker-gen must be root to access /var/run/docker.sock
 
 FROM docker.io/nginxproxy/docker-gen:latest AS docker-gen
 
