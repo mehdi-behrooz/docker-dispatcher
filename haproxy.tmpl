@@ -24,9 +24,9 @@ global
 
 defaults root
     log global
-    timeout connect 10s
-    timeout client 10s
-    timeout server 10s
+    timeout connect 20s
+    timeout client 1h
+    timeout server 1h
     retries 10
     default-server resolvers docker init-addr none
 
