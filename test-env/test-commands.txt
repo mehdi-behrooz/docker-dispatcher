@@ -1,2 +1,6 @@
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl/example1.com.pem.key -out ssl/example1.com.pem
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl/example2.com.pem.key -out ssl/example2.com.pem
+
 curl -k --resolve example1.com:443:127.0.0.1 https://example1.com:443/
 curl -k --resolve example2.com:443:127.0.0.1 https://example2.com:443/
