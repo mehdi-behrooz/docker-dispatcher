@@ -1,0 +1,2 @@
+curl -k --resolve example1.com:443:127.0.0.1 https://example1.com:443/
+curl -k --resolve example2.com:443:127.0.0.1 https://example2.com:443/
