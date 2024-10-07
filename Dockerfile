@@ -30,4 +30,4 @@ CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 HEALTHCHECK  --interval=15m \
     --start-interval=30s \
     --start-period=30s \
-    CMD supervisorctl status docker-gen && supervisorctl status haproxy && nc -z localhost 443 || exit 1
+    CMD pgrep docker-gen && pgrep haproxy && nc -z localhost 443 || exit 1
