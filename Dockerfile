@@ -1,17 +1,13 @@
 # syntax=docker/dockerfile:1
 # checkov:skip=CKV_DOCKER_3: docker-gen must be root to access /var/run/docker.sock
 # checkov:skip=CKV_DOCKER_7: docker-gen has no other tags except "latest"
-# checkov:skip=CKV_DOCKER_8: docker-gen must be root to access /var/run/docker.sock
 
 FROM docker.io/nginxproxy/docker-gen:latest AS docker-gen
 
-FROM haproxy:3.0
+FROM alpine:3
 
-USER root
-# procps for: kill
-# netcat-openbsd for: nc
-RUN apt-get update -y \
-    && apt-get install -y procps netcat-openbsd supervisor
+RUN apk update && \
+    apk add haproxy supervisor bash
 
 ENV LOG_LEVEL=info
 ENV DOCKER_HOST=unix:///tmp/docker.sock
