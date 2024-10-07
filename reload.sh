@@ -5,5 +5,9 @@ if [ "$LOG_LEVEL" == "debug" ]; then
     cat "$HAPROXY_CONFIG"
 fi
 
-pid=$(cat "$HAPROXY_PID")
-kill -USR2 "$pid"
+if [[ -f "$HAPROXY_PID" ]]; then
+    pid=$(cat "$HAPROXY_PID")
+    kill -USR2 "$pid"
+else
+    echo "File does not exist: $HAPROXY_PID"
+fi
