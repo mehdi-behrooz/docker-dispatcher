@@ -28,6 +28,6 @@ COPY --chmod=755 reload.sh /reload.sh
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
 HEALTHCHECK  --interval=15m \
-    --start-interval=30s \
-    --start-period=30s \
+    --start-period=1m \
+    --start-interval=15s \
     CMD pgrep docker-gen && pgrep haproxy && nc -z localhost 443 || exit 1
